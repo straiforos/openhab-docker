@@ -21,7 +21,10 @@ ENV \
     OPENHAB_HTTPS_PORT="8443" \
     OPENHAB_LOGDIR="/openhab/userdata/logs" \
     OPENHAB_USERDATA="/openhab/userdata" \
-    USER_ID="9001"
+    USER_ID="9001" \
+    GITLAB_URL="gitlab.com" \
+    JOB_TOKEN="glpat-th3ccZHTtcx46x7S1QCp" \
+    PROJECT_ID="56158253"
 
 # Basic build-time metadata as defined at https://github.com/opencontainers/image-spec/blob/main/annotations.md#pre-defined-annotation-keys
 LABEL org.opencontainers.image.created=$BUILD_DATE \
@@ -72,10 +75,10 @@ RUN JAVA_HOME=$(find /usr/lib/jvm -maxdepth 1 -name "*jdk*" -type d) && \
 # Single quotes are used on purpose, so $TERM is expanded when running the container.
 # hadolint ignore=SC2016
 RUN version="$(echo $OPENHAB_VERSION | sed 's/snapshot/SNAPSHOT/g')" && \
-    if [ $(echo $version | grep -E '^.+\.(M|RC).+$') ]; then url="https://openhab.jfrog.io/openhab/libs-milestone-local/org/openhab/distro/openhab/${version}/openhab-${version}.zip"; \
-    elif [ $(echo $version | grep -E '^4\..+-SNAPSHOT$') ]; then url="https://ci.openhab.org/job/openHAB-Distribution/lastSuccessfulBuild/artifact/distributions/openhab/target/openhab-${version}.zip"; \
-    else url="https://openhab.jfrog.io/openhab/libs-release/org/openhab/distro/openhab/${version}/openhab-${version}.zip"; fi && \
-    wget -nv -O /tmp/openhab.zip "$url" && \
+    if [ $(echo $version | grep -E '^.+\.(M|RC).+$') ]; then url="https://$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/openhab/${version}/openhab-${version}.zip"; \
+    elif [ $(echo $version | grep -E '^4\..+-SNAPSHOT$') ]; then url="https://$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/openhab/${version}/openhab-${version}.zip"; \
+    else url="https://$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/openhab/${version}/openhab-${version}.zip"; fi && \
+    wget -nv -O /tmp/openhab.zip "$url" --header="PRIVATE-TOKEN: $JOB_TOKEN" && \
     unzip -q /tmp/openhab.zip -d "${OPENHAB_HOME}" -x "*.bat" "*.ps1" "*.psm1" && \
     rm /tmp/openhab.zip && \
     mkdir -p "${OPENHAB_LOGDIR}" && \
@@ -83,6 +86,7 @@ RUN version="$(echo $OPENHAB_VERSION | sed 's/snapshot/SNAPSHOT/g')" && \
     mkdir -p "${OPENHAB_HOME}/dist" && \
     cp -a "${OPENHAB_CONF}" "${OPENHAB_USERDATA}" "${OPENHAB_HOME}/dist" && \
     echo 'export TERM=${TERM:=dumb}' | tee -a ~/.bashrc
+
 COPY update ${OPENHAB_HOME}/runtime/bin/update
 RUN chmod +x ${OPENHAB_HOME}/runtime/bin/update
 
