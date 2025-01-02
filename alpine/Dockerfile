@@ -23,7 +23,7 @@ ENV \
     OPENHAB_USERDATA="/openhab/userdata" \
     USER_ID="9001" \
     GITLAB_URL="gitlab.com" \
-    JOB_TOKEN="glpat-th3ccZHTtcx46x7S1QCp" \
+    JOB_TOKEN="glpat-cs7E5DwjMXEzzQj4eSoU" \
     PROJECT_ID="56158253"
 
 # Basic build-time metadata as defined at https://github.com/opencontainers/image-spec/blob/main/annotations.md#pre-defined-annotation-keys
@@ -69,16 +69,16 @@ RUN apk update --no-cache && \
 # Limit JDK crypto policy by default to comply with local laws which may prohibit use of unlimited strength cryptography
 RUN JAVA_HOME=$(find /usr/lib/jvm -maxdepth 1 -name "*jdk*" -type d) && \
     sed -i 's/^crypto.policy=unlimited/crypto.policy=limited/' "${JAVA_HOME}/conf/security/java.security"
-
+RUN echo $GITLAB_URL, $PROJECT_ID, $JOB_TOKEN
 # Install openHAB
 # Set permissions for openHAB. Export TERM variable. See issue #30 for details!
 # Single quotes are used on purpose, so $TERM is expanded when running the container.
 # hadolint ignore=SC2016
 RUN version="$(echo $OPENHAB_VERSION | sed 's/snapshot/SNAPSHOT/g')" && \
-    if [ $(echo $version | grep -E '^.+\.(M|RC).+$') ]; then url="https://$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/openhab/${version}/openhab-${version}.zip"; \
-    elif [ $(echo $version | grep -E '^4\..+-SNAPSHOT$') ]; then url="https://$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/openhab/${version}/openhab-${version}.zip"; \
-    else url="https://$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/openhab/${version}/openhab-${version}.zip"; fi && \
-    wget -nv -O /tmp/openhab.zip "$url" --header="PRIVATE-TOKEN: $JOB_TOKEN" && \
+    if [ $(echo $version | grep -E '^.+\.(M|RC).+$') ]; then url="https://${GITLAB_URL}/api/v4/projects/${PROJECT_ID}/packages/generic/openhab/${version}/openhab-${version}.zip"; \
+    elif [ $(echo $version | grep -E '^4\..+-SNAPSHOT$') ]; then url="https://${GITLAB_URL}/api/v4/projects/${PROJECT_ID}/packages/generic/openhab/${version}/openhab-${version}.zip"; \
+    else url="https://${GITLAB_URL}/api/v4/projects/${PROJECT_ID}/packages/generic/openhab/${version}/openhab-${version}.zip"; fi && \
+    wget -nv -O /tmp/openhab.zip "$url" --header="PRIVATE-TOKEN: ${JOB_TOKEN}" && \
     unzip -q /tmp/openhab.zip -d "${OPENHAB_HOME}" -x "*.bat" "*.ps1" "*.psm1" && \
     rm /tmp/openhab.zip && \
     mkdir -p "${OPENHAB_LOGDIR}" && \
